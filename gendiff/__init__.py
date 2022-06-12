@@ -73,7 +73,6 @@ def generate_diff_item(lhs, rhs, tree=None):
         elif key in lhs and key in rhs and lhs[key] != rhs[key]:
             tree.add_child(Node(key, lhs[key], Change.DELETED))
             tree.add_child(Node(key, rhs[key], Change.ADDED))
-
     return tree
 
 
