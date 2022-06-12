@@ -1,4 +1,5 @@
 import json
+import yaml
 
 
 class Diff:
@@ -28,26 +29,32 @@ class Diff:
         return self._value
 
 
+def read_file(file_path):
+    with open(file_path) as f:
+        if file_path.endswith('.json'):
+            return json.load(f)
+        elif file_path.endswith('.yaml') or file_path.endswith('.yml'):
+            return yaml.load(f, Loader=yaml.CLoader)
+    raise Exception(f'Unsuported format for file `{file_path}`')
+
+
 def generate_diff(file1_path, file2_path):
-    with open(file1_path) as f:
-        d1 = json.load(f)
+    lhs = read_file(file1_path)
+    rhs = read_file(file2_path)
 
-    with open(file2_path) as f:
-        d2 = json.load(f)
-
-    keys = list(set(d1.keys()).union(set(d2.keys())))
+    keys = list(set(lhs.keys()).union(set(rhs.keys())))
     keys.sort()
 
     diffs = []
     for key in keys:
-        if key in d1 and key in d2 and d1[key] == d2[key]:
-            diffs.append(Diff(key, d1[key]))
-        elif key in d1 and key not in d2:
-            diffs.append(Diff(key, d1[key], -1))
-        elif key not in d1 and key in d2:
-            diffs.append(Diff(key, d2[key], +1))
-        elif key in d1 and key in d2 and d1[key] != d2[key]:
-            diffs.append(Diff(key, d1[key], -1))
-            diffs.append(Diff(key, d2[key], +1))
+        if key in lhs and key in rhs and lhs[key] == rhs[key]:
+            diffs.append(Diff(key, lhs[key]))
+        elif key in lhs and key not in rhs:
+            diffs.append(Diff(key, lhs[key], -1))
+        elif key not in lhs and key in rhs:
+            diffs.append(Diff(key, rhs[key], +1))
+        elif key in lhs and key in rhs and lhs[key] != rhs[key]:
+            diffs.append(Diff(key, lhs[key], -1))
+            diffs.append(Diff(key, rhs[key], +1))
 
     return '{\n' + '\n'.join(map(str, diffs)) + '\n}'
