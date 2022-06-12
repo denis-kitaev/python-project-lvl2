@@ -1,0 +1,6 @@
+.venv/
+*.pyc
+dist/
+.idea/
+fixtures/
+__pycache__/
