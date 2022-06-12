@@ -23,3 +23,14 @@ def test_flat_yaml():
     with open(result_path) as f:
         expected_result = f.read()
     assert generate_diff(file1_path, file2_path) == expected_result
+
+
+def test_nested_json():
+    fixtures_path = os.path.join(os.path.dirname(__file__), 'fixtures')
+
+    file1_path = os.path.join(fixtures_path, 'nested_file1.json')
+    file2_path = os.path.join(fixtures_path, 'nested_file2.json')
+    result_path = os.path.join(fixtures_path, 'nested_diff')
+    with open(result_path) as f:
+        expected_result = f.read()
+    assert generate_diff(file1_path, file2_path) == expected_result

@@ -1,22 +1,37 @@
 import json
+from tkinter import N
 import yaml
+from enum import Enum, auto
 
 
-class Diff:
-    __slots__ = ('_key', '_value', '_type')
+class Change(Enum):
+    NO = auto(),
+    ADDED = auto(),
+    DELETED = auto()
 
-    def __init__(self, key, value, type_=0):
+
+class Node:
+    def __init__(self, key, value, change=Change.NO, level=0):
         self._key = key
         self._value = value
-        self._type = type_
+        self._change = change
+        self._children = []
+        self.level = level
 
     def __str__(self):
-        if self._type == 0:
-            return f'    {self.key_value}'
-        elif self._type == 1:
-            return f'  + {self.key_value}'
-        elif self._type == -1:
-            return f'  - {self.key_value}'
+        out = '  ' * (self.level + 1)
+        # if len(self._children) > 0:
+        #     if self._key is not None:
+        #         out += self._key + ': '
+        #     return out + '{\n' + '\n'.join(map(lambda c: c.to_string(), self._children)) + '\n}'
+
+        if self._change == Change.NO:
+            out += f'  {self.key_value}'
+        elif self._change == Change.ADDED:
+            out += f'+ {self.key_value}'
+        elif self._change == Change.DELETED:
+            out += f'- {self.key_value}'
+        return out
 
     @property
     def key_value(self):
@@ -28,6 +43,13 @@ class Diff:
             return json.dumps(self._value)
         return self._value
 
+    def add_child(self, node):
+        self._children.append(node)
+
+    def to_string(self):
+        # return str(self)
+        return '{\n' + '\n'.join(map(str, self._children)) + '\n}'
+
 
 def read_file(file_path):
     with open(file_path) as f:
@@ -38,23 +60,32 @@ def read_file(file_path):
     raise Exception(f'Unsuported format for file `{file_path}`')
 
 
+def generate_diff_item(lhs, rhs, tree=None):
+    keys = list(set(lhs.keys()).union(set(rhs.keys())))
+    keys.sort()
+
+    tree = tree or Node(None, None)
+    for key in keys:
+        if isinstance(lhs.get(key, {}), dict) and isinstance(rhs.get(key, {}), dict):
+            subtree = Node(key, None, level=tree.level + 1)
+            tree.add_child(subtree)
+            generate_diff_item(lhs.get(key, {}), rhs.get(key, {}), subtree)
+        if key in lhs and key in rhs and lhs[key] == rhs[key]:
+            tree.add_child(Node(key, lhs[key]))
+        elif key in lhs and key not in rhs:
+            tree.add_child(Node(key, lhs[key], Change.DELETED))
+        elif key not in lhs and key in rhs:
+            tree.add_child(Node(key, rhs[key], Change.ADDED))
+        elif key in lhs and key in rhs and lhs[key] != rhs[key]:
+            tree.add_child(Node(key, lhs[key], Change.DELETED))
+            tree.add_child(Node(key, rhs[key], Change.ADDED))
+
+    return tree
+
+
 def generate_diff(file1_path, file2_path):
     lhs = read_file(file1_path)
     rhs = read_file(file2_path)
 
-    keys = list(set(lhs.keys()).union(set(rhs.keys())))
-    keys.sort()
-
-    diffs = []
-    for key in keys:
-        if key in lhs and key in rhs and lhs[key] == rhs[key]:
-            diffs.append(Diff(key, lhs[key]))
-        elif key in lhs and key not in rhs:
-            diffs.append(Diff(key, lhs[key], -1))
-        elif key not in lhs and key in rhs:
-            diffs.append(Diff(key, rhs[key], +1))
-        elif key in lhs and key in rhs and lhs[key] != rhs[key]:
-            diffs.append(Diff(key, lhs[key], -1))
-            diffs.append(Diff(key, rhs[key], +1))
-
-    return '{\n' + '\n'.join(map(str, diffs)) + '\n}'
+    diff = generate_diff_item(lhs, rhs)
+    return diff.to_string()
