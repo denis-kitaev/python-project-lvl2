@@ -24,20 +24,20 @@ jobs:
           make install
           make lint
 
-    test:
-      # Name the Job
-      name: Test code
-      # Set the type of machine to run on
-      runs-on: ubuntu-latest
+  test:
+    # Name the Job
+    name: Test code
+    # Set the type of machine to run on
+    runs-on: ubuntu-latest
 
-      steps:
-        # Checks out a copy of your repository on the ubuntu-latest machine
-        - name: Checkout code
-          uses: actions/checkout@v2
+    steps:
+      # Checks out a copy of your repository on the ubuntu-latest machine
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-        - name: Install env & test
-          run: |
-            curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-            source $HOME/.poetry/env
-            make install
-            make test
+      - name: Install env & test
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+          source $HOME/.poetry/env
+          make install
+          make test
