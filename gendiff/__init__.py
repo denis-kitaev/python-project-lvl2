@@ -19,11 +19,6 @@ class Node:
 
     def __str__(self):
         out = '  ' * (self.level + 1)
-        # if len(self._children) > 0:
-        #     if self._key is not None:
-        #         out += self._key + ': '
-        #     return out + '{\n' + '\n'.join(map(lambda c: c.to_string(), self._children)) + '\n}'
-
         if self._change == Change.NO:
             out += f'  {self.key_value}'
         elif self._change == Change.ADDED:
@@ -65,7 +60,7 @@ def generate_diff_item(lhs, rhs, tree=None):
 
     tree = tree or Node(None, None)
     for key in keys:
-        if isinstance(lhs.get(key, {}), dict) and isinstance(rhs.get(key, {}), dict):
+        if isinstance(lhs.get(key), dict) and isinstance(rhs.get(key), dict):
             subtree = Node(key, None, level=tree.level + 1)
             tree.add_child(subtree)
             generate_diff_item(lhs.get(key, {}), rhs.get(key, {}), subtree)
