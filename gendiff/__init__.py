@@ -1,48 +1,16 @@
 import json
 import yaml
-from enum import Enum, auto
 
 
-class Change(Enum):
-    NO = auto(),
-    ADDED = auto(),
-    DELETED = auto()
+NOT_CHANGED, DELETED, ADDED = 0, 1, 2
 
+CHANGE_REPR = {
+    NOT_CHANGED: ' ',
+    DELETED: '-',
+    ADDED: '+'
+}
 
-class Node:
-    def __init__(self, key, value, change=Change.NO, level=0):
-        self._key = key
-        self._value = value
-        self._change = change
-        self._children = []
-        self.level = level
-
-    def __str__(self):
-        out = '  ' * (self.level + 1)
-        if self._change == Change.NO:
-            out += f'  {self.key_value}'
-        elif self._change == Change.ADDED:
-            out += f'+ {self.key_value}'
-        elif self._change == Change.DELETED:
-            out += f'- {self.key_value}'
-        return out
-
-    @property
-    def key_value(self):
-        return f'{self._key}: {self.value_string}'
-
-    @property
-    def value_string(self):
-        if isinstance(self._value, bool):
-            return json.dumps(self._value)
-        return self._value
-
-    def add_child(self, node):
-        self._children.append(node)
-
-    def to_string(self):
-        # return str(self)
-        return '{\n' + '\n'.join(map(str, self._children)) + '\n}'
+NoValue = object()
 
 
 def read_file(file_path):
@@ -54,31 +22,106 @@ def read_file(file_path):
     raise Exception(f'Unsuported format for file `{file_path}`')
 
 
-def generate_diff_item(lhs, rhs, tree=None):
+def build_diff_tree(lhs, rhs, key=None):
+    lhs_is_dict = isinstance(lhs, dict)
+    rhs_is_dict = isinstance(rhs, dict)
+    lhs_is_no = lhs is NoValue
+    rhs_is_no = rhs is NoValue
+
+    tree = []
+
+    if not lhs_is_dict and not rhs_is_dict:
+        if not lhs_is_no and not rhs_is_no:
+            if lhs == rhs:
+                return [(key, NOT_CHANGED, lhs)]
+            return [
+                (key, DELETED, lhs),
+                (key, ADDED, rhs)
+            ]
+
+        elif rhs is NoValue:
+            return [(key, DELETED, lhs_value)]
+        elif lhs is NoValue:
+            return [(key, ADDED, rhs_value)]
+
+
+
     keys = list(set(lhs.keys()).union(set(rhs.keys())))
     keys.sort()
 
-    tree = tree or Node(None, None)
+
     for key in keys:
-        if isinstance(lhs.get(key), dict) and isinstance(rhs.get(key), dict):
-            subtree = Node(key, None, level=tree.level + 1)
-            tree.add_child(subtree)
-            generate_diff_item(lhs.get(key, {}), rhs.get(key, {}), subtree)
-        if key in lhs and key in rhs and lhs[key] == rhs[key]:
-            tree.add_child(Node(key, lhs[key]))
-        elif key in lhs and key not in rhs:
-            tree.add_child(Node(key, lhs[key], Change.DELETED))
-        elif key not in lhs and key in rhs:
-            tree.add_child(Node(key, rhs[key], Change.ADDED))
-        elif key in lhs and key in rhs and lhs[key] != rhs[key]:
-            tree.add_child(Node(key, lhs[key], Change.DELETED))
-            tree.add_child(Node(key, rhs[key], Change.ADDED))
+        lhs_value = lhs.get(key, NoValue)
+        rhs_value = rhs.get(key, NoValue)
+
+        if isinstance(lhs_value, dict):
+            if isinstance(rhs_value, dict):
+                subtree = build_diff_tree(lhs_value, rhs_value)
+                tree.append((key, NOT_CHANGED, subtree))
+                continue
+            if rhs_value is NoValue:
+                subtree = build_diff_tree(lhs_value, {})
+                tree.append((key, DELETED, subtree))
+                continue
+            else:
+                subtree = build_diff_tree(lhs_value, {})
+                tree.append((key, DELETED, subtree))
+                tree.append((key, ADDED, rhs_value))
+                continue
+
+        if isinstance(rhs_value, dict):
+            if lhs_value is NoValue:
+                subtree = build_diff_tree({}, rhs_value)
+                tree.append((key, ADDED, subtree))
+                continue
+            else:
+                subtree = build_diff_tree({}, rhs_value)
+                tree.append((key, DELETED, lhs_value))
+                tree.append((key, ADDED, subtree))
+                continue
+
+        if lhs_value is not NoValue and rhs_value is not NoValue:
+            if lhs_value == rhs_value:
+                tree.append((key, NOT_CHANGED, lhs_value))
+            else:
+                tree.append((key, DELETED, lhs_value))
+                tree.append((key, ADDED, rhs_value))
+
+        elif rhs_value is NoValue:
+            tree.append((key, DELETED, lhs_value))
+        elif lhs_value is NoValue:
+            tree.append((key, ADDED, rhs_value))
+
+    tree.sort()
     return tree
+
+
+def stylish(tree):
+
+    def _walk(subtree, depth=0):
+        if isinstance(subtree, bool):
+            return str(subtree).lower()
+        if not isinstance(subtree, list):
+            return str(subtree)
+
+        brace_spaces = ' ' * 2 * depth
+        key_spaces = ' ' * 2 * (depth + 1)
+        out = ['{']
+        for node in subtree:
+            key = node[0]
+            change_sign = CHANGE_REPR[node[1]]
+            value = _walk(node[2], depth=depth + 1)
+            out.append(f'{key_spaces}{change_sign} {key}: {value}')
+        out.append(brace_spaces + '}')
+        return '\n'.join(out)
+
+    return _walk(tree)
 
 
 def generate_diff(file1_path, file2_path):
     lhs = read_file(file1_path)
     rhs = read_file(file2_path)
 
-    diff = generate_diff_item(lhs, rhs)
-    return diff.to_string()
+    tree = build_diff_tree(lhs, rhs)
+    print(tree)
+    return stylish(tree)
