@@ -7,8 +7,11 @@ def stylish(tree):
     replacer = ' '
 
     def _walk(value, depth=0):
-        if isinstance(value, (bool, str, int)) or value is None:
+        if isinstance(value, (bool, int)) or value is None:
             return json.dumps(value)
+
+        if isinstance(value, str):
+            return value
 
         key_spaces = replacer * ((depth * 4) + 2)
         quote_spaces = replacer * (depth * 4)

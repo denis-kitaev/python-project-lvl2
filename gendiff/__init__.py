@@ -7,8 +7,8 @@ from gendiff.formatters import get_formatter, DEFAULT_FORMAT
 
 FILE_LOADERS = {
     'json': json.load,
-    'yaml': yaml.load,
-    'yml': yaml.load,
+    'yaml': lambda f: yaml.load(f, Loader=yaml.CLoader),
+    'yml': lambda f: yaml.load(f, Loader=yaml.CLoader),
 }
 
 
