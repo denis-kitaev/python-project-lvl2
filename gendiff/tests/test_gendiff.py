@@ -1,47 +1,34 @@
 import os
 
+import pytest
+
 from gendiff import generate_diff
 
 
-def test_flat_json():
-    fixtures_path = os.path.join(os.path.dirname(__file__), 'fixtures')
-
-    file1_path = os.path.join(fixtures_path, 'src/flat_file1.json')
-    file2_path = os.path.join(fixtures_path, 'src/flat_file2.json')
-    result_path = os.path.join(fixtures_path, 'result/flat_diff_stylish')
-    with open(result_path) as f:
-        expected_result = f.read()
-    assert generate_diff(file1_path, file2_path) == expected_result
+FIXTURES_PATH = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 
-def test_flat_yaml():
-    fixtures_path = os.path.join(os.path.dirname(__file__), 'fixtures')
-
-    file1_path = os.path.join(fixtures_path, 'src/flat_file1.yaml')
-    file2_path = os.path.join(fixtures_path, 'src/flat_file2.yaml')
-    result_path = os.path.join(fixtures_path, 'result/flat_diff_stylish')
-    with open(result_path) as f:
-        expected_result = f.read()
-    assert generate_diff(file1_path, file2_path) == expected_result
+def src_file1_path(type_, input_format):
+    return os.path.join(FIXTURES_PATH, f'src/{type_}_file1.{input_format}')
 
 
-def test_nested_json():
-    fixtures_path = os.path.join(os.path.dirname(__file__), 'fixtures')
-
-    file1_path = os.path.join(fixtures_path, 'src/nested_file1.json')
-    file2_path = os.path.join(fixtures_path, 'src/nested_file2.json')
-    result_path = os.path.join(fixtures_path, 'result/nested_diff_stylish')
-    with open(result_path) as f:
-        expected_result = f.read().strip()
-    assert generate_diff(file1_path, file2_path) == expected_result
+def src_file2_path(type_, input_format):
+    return os.path.join(FIXTURES_PATH, f'src/{type_}_file2.{input_format}')
 
 
-def test_nested_yaml():
-    fixtures_path = os.path.join(os.path.dirname(__file__), 'fixtures')
+def result(type_, output_format):
+    path = os.path.join(FIXTURES_PATH, f'result/{type_}_diff_{output_format}')
+    with open(path) as f:
+        return f.read().strip()
 
-    file1_path = os.path.join(fixtures_path, 'src/nested_file1.yaml')
-    file2_path = os.path.join(fixtures_path, 'src/nested_file2.yaml')
-    result_path = os.path.join(fixtures_path, 'result/nested_diff_stylish')
-    with open(result_path) as f:
-        expected_result = f.read().strip()
-    assert generate_diff(file1_path, file2_path) == expected_result
+
+@pytest.mark.parametrize('type_', ['flat', 'nested'])
+@pytest.mark.parametrize('input_format', ['json', 'yaml'])
+@pytest.mark.parametrize('output_format', ['stylish', 'plain'])
+def test_generate_diff(type_, input_format, output_format):
+    file1_path = src_file1_path(type_, input_format)
+    file2_path = src_file2_path(type_, input_format)
+
+    expected = result(type_, output_format)
+    assert generate_diff(file1_path, file2_path, format_=output_format) == expected
+
