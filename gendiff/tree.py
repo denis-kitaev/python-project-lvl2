@@ -15,8 +15,8 @@ def build_diff_tree(lhs, rhs):
 
         if key not in lhs.keys():
             tree.append((ADDED, key, rhs_value))
-        # elif key not in rhs.keys():
-        #     tree.append((DELETED, key, lhs_value))
+        elif key not in rhs.keys():
+            tree.append((DELETED, key, lhs_value))
         elif lhs_value != rhs_value:
             tree.append((CHANGED, key, lhs_value, rhs_value))
         else:
