@@ -31,4 +31,3 @@ def test_generate_diff(type_, input_format, output_format):
 
     expected = result(type_, output_format)
     assert generate_diff(file1_path, file2_path, format_=output_format) == expected
-
