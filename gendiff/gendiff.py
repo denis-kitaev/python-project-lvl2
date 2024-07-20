@@ -26,5 +26,4 @@ def generate_diff(file1_path, file2_path, format_=DEFAULT_FORMAT):
 
     tree = build_diff_tree(lhs, rhs)
     formatter = get_formatter(format_)
-    return ''
     return formatter(tree)
