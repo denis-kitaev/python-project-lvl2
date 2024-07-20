@@ -18,3 +18,6 @@ lint:
 
 test:
 	poetry run pytest
+
+check:
+	make lint && make test
