@@ -12,12 +12,12 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.12"
 PyYAML = "^6.0.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
-flake8 = "^3.9.2"
+pytest = "^8.2"
+flake8 = "^7.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
